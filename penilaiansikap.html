@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplikasi Kuisioner Terintegrasi</title>
+    <style>
+        /* General Styles */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 20px auto;
+            background-color: #fff;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2 {
+            color: #0056b3;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button.danger { background-color: #dc3545; }
+        button.danger:hover { background-color: #c82333; }
+        button.success { background-color: #28a745; }
+        button.success:hover { background-color: #218838; }
+        input[type="text"], input[type="password"], input[type="time"], textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+            margin-bottom: 10px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .error, .success-message, .info-message {
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .error { color: #D8000C; background-color: #FFD2D2; }
+        .success-message { color: #4F8A10; background-color: #DFF2BF; }
+        .info-message { color: #00529B; background-color: #BDE5F8; }
+
+        /* Page Specific Styles */
+        #loginPage, #settingsPage, #respondentPage, #resultsPage {
+            display: none; /* Sembunyikan semua halaman di awal */
+        }
+
+        /* Settings Page */
+        .settings-item {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        .settings-item h3 {
+            margin-top: 0;
+        }
+
+        /* Respondent Page */
+        #kuisionerContainer {
+            margin-top: 20px;
+        }
+        .pertanyaan {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-left: 4px solid #007BFF;
+            background-color: #f9f9f9;
+        }
+        .opsi-jawaban label {
+            display: inline-block;
+            margin-right: 20px;
+            font-weight: normal;
+            cursor: pointer;
+        }
+
+        /* Results Page */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th, td {
+            padding: 12px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        th {
+            background-color: #007BFF;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Halaman Login (Awal) -->
+        <div id="loginPage">
+            <h1>Login Aplikasi Kuisioner</h1>
+            <div id="loginError" class="error"></div>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="loginInput">Nama Lengkap (Responden) atau Password Admin:</label>
+                    <input type="password" id="loginInput" placeholder="Masukkan Nama atau Password" required>
+                </div>
+                <div class="form-group" id="noAbsenGroup" style="display: none;">
+                    <label for="noAbsenInput">No Absen:</label>
+                    <input type="text" id="noAbsenInput" placeholder="Masukkan No Absen Anda">
+                </div>
+                <button type="submit" class="success">Masuk</button>
+            </form>
+            <p style="margin-top: 20px; font-size: 0.9em; color: #666;">
+                <strong>Responden:</strong> Masukkan Nama dan No Absen Anda.<br>
+                <strong>Admin:</strong> Masukkan password admin.
+            </p>
+        </div>
+
+        <!-- Halaman Pengaturan Admin -->
+        <div id="settingsPage">
+            <h1>Pengaturan Kuisioner</h1>
+            <p>Di sini Anda dapat mengatur pernyataan dan jadwal (jam mulai) untuk setiap bagian kuisioner.</p>
+            <div id="settingsContainer">
+                <!-- Pengaturan akan dimuat secara dinamis di sini -->
+            </div>
+            <button class="success" onclick="saveAllSettings()">Simpan Semua Perubahan</button>
+            <button onclick="logout()">Keluar</button>
+        </div>
+
+        <!-- Halaman Kuisioner untuk Responden -->
+        <div id="respondentPage">
+            <h1>Kuisioner Penilaian Sikap Kerja</h1>
+            <p>Selamat datang, <strong id="displayNama"></strong> (No Absen: <strong id="displayNoAbsen"></strong>)</p>
+            
+            <div id="infoMessage" class="info-message"></div>
+            <div id="kuisionerContainer" style="display: none;">
+                <h2 id="kuisionerTitle"></h2>
+                <div id="pertanyaanContainer">
+                    <!-- Pertanyaan akan dimuat secara dinamis -->
+                </div>
+                <button id="submitBtn" style="display: none;">Kirim Jawaban</button>
+            </div>
+            <div id="finalMessage" style="display: none; text-align: center; font-size: 1.2em; color: #28a745;">
+                <!-- Pesan akan dimuat secara dinamis -->
+            </div>
+             <button onclick="logout()" style="margin-top: 20px;">Keluar</button>
+        </div>
+
+        <!-- Halaman Hasil Admin -->
+        <div id="resultsPage">
+            <h1>Halaman Hasil dan Peringkat</h1>
+            <div id="riwayatPenilaian">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Peringkat</th>
+                            <th>No Absen</th>
+                            <th>Nama Responden</th>
+                            <th>Nilai A (%)</th>
+                            <th>Nilai B (%)</th>
+                            <th>Nilai C (%)</th>
+                            <th>Nilai D (%)</th>
+                            <th>Rata-Rata (%)</th>
+                            <th>Aksi</th> <!-- Kolom Aksi baru -->
+                        </tr>
+                    </thead>
+                    <tbody id="tabelRiwayat">
+                        <!-- Riwayat akan dimuat di sini -->
+                    </tbody>
+                </table>
+            </div>
+            <button class="danger" onclick="confirmResetAllData()">Reset Semua Data</button>
+            <button onclick="exportToExcel()">Export ke Excel (CSV)</button>
+            <button onclick="showPage('settingsPage')">Pengaturan</button>
+            <button onclick="logout()">Keluar</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const submitButton = document.getElementById('submitBtn');
+            if (submitButton) {
+                submitButton.addEventListener('click', function(event) {
+                    event.preventDefault();
+                    submitCurrentKuisioner();
+                });
+            }
+
+            if (!localStorage.getItem('kuisionerSettings')) {
+                const defaultSettings = [
+                    { id: 'A', name: 'Disiplin', startTime: '08:00', questions: ['Saya selalu datang tepat waktu.', 'Saya mematuhi semua peraturan yang berlaku.'] },
+                    { id: 'B', name: 'Tanggung Jawab', startTime: '12:00', questions: ['Saya menyelesaikan tugas saya dengan hasil terbaik.', 'Saya bertanggung jawab atas kesalahan yang saya buat.'] },
+                    { id: 'C', name: 'Kerjasama Tim', startTime: '15:00', questions: ['Saya aktif memberikan ide dalam tim.', 'Saya menghargai pendapat anggota tim lainnya.'] },
+                    { id: 'D', name: 'Inisiatif', startTime: '17:00', questions: ['Saya mencari cara untuk meningkatkan efisiensi kerja.', 'Saya tidak takut untuk mencoba hal baru dalam pekerjaan.'] }
+                ];
+                localStorage.setItem('kuisionerSettings', JSON.stringify(defaultSettings));
+            }
+            showPage('loginPage');
+        });
+
+        const ADMIN_KEY = "admin123";
+        let kuisionerData = [];
+        let currentKuisIndex = 0;
+        let allAnswers = {};
+        let respondentData = {};
+        let timeCheckInterval;
+
+        function showPage(pageId) {
+            document.querySelectorAll('.container > div').forEach(page => page.style.display = 'none');
+            document.getElementById(pageId).style.display = 'block';
+
+            if (pageId === 'settingsPage') {
+                loadSettingsToPage();
+            }
+            if (pageId === 'resultsPage') {
+                tampilkanDanUrutkanData();
+            }
+        }
+
+        function logout() {
+            clearInterval(timeCheckInterval);
+            currentKuisIndex = 0;
+            allAnswers = {};
+            respondentData = {};
+            document.getElementById('loginForm').reset();
+            showPage('loginPage');
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', (event) => {
+            event.preventDefault();
+            const loginInput = document.getElementById('loginInput').value.trim();
+            const loginError = document.getElementById('loginError');
+            loginError.style.display = 'none';
+
+            if (loginInput === ADMIN_KEY) {
+                goToAdminPage();
+            } else {
+                const noAbsen = document.getElementById('noAbsenInput').value.trim();
+                if (!loginInput || !noAbsen) {
+                    loginError.textContent = 'Nama dan No Absen harus diisi untuk responden.';
+                    loginError.style.display = 'block';
+                    return;
+                }
+                if (isNoAbsenExist(noAbsen)) {
+                    loginError.textContent = `No Absen ${noAbsen} sudah ada atau sedang digunakan. Hubungi admin.`;
+                    loginError.style.display = 'block';
+                    return;
+                }
+                goToRespondentPage(loginInput, noAbsen);
+            }
+        });
+
+        document.getElementById('loginInput').addEventListener('input', (e) => {
+            const noAbsenGroup = document.getElementById('noAbsenGroup');
+            if (e.target.value === ADMIN_KEY) {
+                noAbsenGroup.style.display = 'none';
+            } else {
+                noAbsenGroup.style.display = 'block';
+            }
+        });
+
+        function isNoAbsenExist(noAbsen) {
+            const riwayat = JSON.parse(localStorage.getItem('riwayatPenilaianSikap')) || [];
+            const inProgress = JSON.parse(localStorage.getItem('inProgressRespondenData')) || {};
+            return riwayat.some(r => r.noAbsen === noAbsen) || inProgress.hasOwnProperty(noAbsen);
+        }
+
+        function goToAdminPage() {
+            showPage('resultsPage');
+        }
+
+        function goToRespondentPage(nama, noAbsen) {
+            respondentData = { nama, noAbsen };
+            allAnswers = {};
+            document.getElementById('displayNama').textContent = nama;
+            document.getElementById('displayNoAbsen').textContent = noAbsen;
+            showPage('respondentPage');
+            
+            kuisionerData = JSON.parse(localStorage.getItem('kuisionerSettings'));
+            
+            const inProgressData = JSON.parse(localStorage.getItem('inProgressRespondenData')) || {};
+            if (inProgressData[noAbsen]) {
+                allAnswers = inProgressData[noAbsen].completedKuis || {};
+            } else {
+                allAnswers = {};
+            }
+
+            currentKuisIndex = kuisionerData.findIndex(kuis => !allAnswers.hasOwnProperty(kuis.id));
+
+            if (currentKuisIndex === -1) {
+                document.getElementById('infoMessage').style.display = 'none';
+                document.getElementById('kuisionerContainer').style.display = 'none';
+                document.getElementById('finalMessage').style.display = 'block';
+                document.getElementById('finalMessage').innerHTML = `<h2>Semua Kuisioner Selesai</h2><p>Terima kasih, Anda telah menyelesaikan semua kuisioner.</p>`;
+                return;
+            }
+
+            checkAndDisplayKuisioner();
+        }
+
+        function checkAndDisplayKuisioner() {
+            clearInterval(timeCheckInterval);
+            
+            if (currentKuisIndex >= kuisionerData.length) {
+                submitResults();
+                return;
+            }
+
+            const kuis = kuisionerData[currentKuisIndex];
+            const now = new Date();
+            const startTime = new Date();
+            const [hours, minutes] = kuis.startTime.split(':');
+            startTime.setHours(hours, minutes, 0, 0);
+
+            const infoMessage = document.getElementById('infoMessage');
+            const kuisionerContainer = document.getElementById('kuisionerContainer');
+
+            if (now >= startTime) {
+                infoMessage.style.display = 'none';
+                kuisionerContainer.style.display = 'block';
+                displayKuisioner(kuis);
+            } else {
+                kuisionerContainer.style.display = 'none';
+                infoMessage.innerHTML = `Kuisioner "${kuis.name}" akan tersedia mulai pukul <strong>${kuis.startTime}</strong>.<br>Silakan tunggu hingga waktu tiba.`;
+                infoMessage.style.display = 'block';
+                timeCheckInterval = setInterval(checkAndDisplayKuisioner, 5000);
+            }
+        }
+
+        function displayKuisioner(kuis) {
+            document.getElementById('kuisionerTitle').textContent = `Kuisioner ${kuis.id}: ${kuis.name}`;
+            const pertanyaanContainer = document.getElementById('pertanyaanContainer');
+            pertanyaanContainer.innerHTML = '';
+
+            kuis.questions.forEach((q, i) => {
+                const qDiv = document.createElement('div');
+                qDiv.className = 'pertanyaan';
+                qDiv.innerHTML = `
+                    <p>${i + 1}. ${q}</p>
+                    <div class="opsi-jawaban">
+                        <label><input type="radio" name="q${currentKuisIndex}_${i}" value="4" required> Sangat Setuju</label>
+                        <label><input type="radio" name="q${currentKuisIndex}_${i}" value="3"> Setuju</label>
+                        <label><input type="radio" name="q${currentKuisIndex}_${i}" value="2"> Tidak Setuju</label>
+                        <label><input type="radio" name="q${currentKuisIndex}_${i}" value="1"> Sangat Tidak Setuju</label>
+                    </div>
+                `;
+                pertanyaanContainer.appendChild(qDiv);
+            });
+
+            document.getElementById('submitBtn').style.display = 'block';
+        }
+        
+        function submitCurrentKuisioner() {
+            if (!kuisionerData || currentKuisIndex === undefined || currentKuisIndex < 0 || !kuisionerData[currentKuisIndex]) {
+                alert("Terjadi kesalahan internal: Data kuisioner tidak ditemukan. Silakan muat ulang halaman dan coba lagi.");
+                return;
+            }
+
+            const kuis = kuisionerData[currentKuisIndex];
+            let totalSkor = 0;
+            let allAnswered = true;
+
+            for (let i = 0; i < kuis.questions.length; i++) {
+                const selector = `input[name="q${currentKuisIndex}_${i}"]:checked`;
+                const selected = document.querySelector(selector);
+                if (selected) {
+                    totalSkor += parseInt(selected.value);
+                } else {
+                    allAnswered = false;
+                    break;
+                }
+            }
+
+            if (!allAnswered) {
+                const proceed = confirm('Anda belum menjawab semua pertanyaan. Jawaban kosong akan dianggap nilai terendah. Lanjutkan?');
+                if (!proceed) {
+                    return;
+                }
+            }
+
+            const skorMaksimal = kuis.questions.length * 4;
+            const persentase = (totalSkor / skorMaksimal) * 100;
+            allAnswers[kuis.id] = persentase.toFixed(2);
+            
+            updateFinalResults(respondentData, allAnswers);
+            saveProgress();
+
+            if (currentKuisIndex === kuisionerData.length - 1) {
+                submitResults();
+            } else {
+                document.getElementById('kuisionerContainer').style.display = 'none';
+                document.getElementById('finalMessage').style.display = 'block';
+                document.getElementById('finalMessage').innerHTML = `<h2>Terima Kasih!</h2><p>Jawaban untuk kuisioner "${kuis.name}" telah tersimpan. Halaman akan kembali ke login dalam 4 detik.</p>`;
+                setTimeout(logout, 4000);
+            }
+        }
+
+        function updateFinalResults(currentRespondentData, currentAllAnswers) {
+            let riwayat = JSON.parse(localStorage.getItem('riwayatPenilaianSikap')) || [];
+            
+            const existingIndex = riwayat.findIndex(r => r.noAbsen === currentRespondentData.noAbsen);
+            const dataToSave = { ...currentRespondentData, ...currentAllAnswers };
+
+            if (existingIndex > -1) {
+                riwayat[existingIndex] = dataToSave;
+            } else {
+                riwayat.push(dataToSave);
+            }
+
+            localStorage.setItem('riwayatPenilaianSikap', JSON.stringify(riwayat));
+        }
+
+        function saveProgress() {
+            let inProgressData = JSON.parse(localStorage.getItem('inProgressRespondenData')) || {};
+            inProgressData[respondentData.noAbsen] = {
+                nama: respondentData.nama,
+                noAbsen: respondentData.noAbsen,
+                completedKuis: allAnswers
+            };
+            localStorage.setItem('inProgressRespondenData', JSON.stringify(inProgressData));
+        }
+        
+        function submitResults() {
+            clearInterval(timeCheckInterval);
+            
+            let riwayat = JSON.parse(localStorage.getItem('riwayatPenilaianSikap')) || [];
+            const finalData = { ...respondentData, ...allAnswers };
+            riwayat.push(finalData);
+            localStorage.setItem('riwayatPenilaianSikap', JSON.stringify(riwayat));
+
+            let inProgressData = JSON.parse(localStorage.getItem('inProgressRespondenData')) || {};
+            delete inProgressData[respondentData.noAbsen];
+            localStorage.setItem('inProgressRespondenData', JSON.stringify(inProgressData));
+            
+            document.getElementById('kuisionerContainer').style.display = 'none';
+            document.getElementById('finalMessage').style.display = 'block';
+            document.getElementById('finalMessage').innerHTML = `<h2>Semua Kuisioner Selesai</h2><p>Terima kasih, Anda telah menyelesaikan semua kuisioner. Halaman akan kembali ke login dalam 5 detik.</p>`;
+            setTimeout(logout, 5000);
+        }
+
+        function loadSettingsToPage() {
+            const settings = JSON.parse(localStorage.getItem('kuisionerSettings'));
+            const container = document.getElementById('settingsContainer');
+            container.innerHTML = '';
+
+            settings.forEach(kuis => {
+                const kuisDiv = document.createElement('div');
+                kuisDiv.className = 'settings-item';
+                kuisDiv.innerHTML = `
+                    <h3>Kuisioner ${kuis.id}: ${kuis.name}</h3>
+                    <div class="form-group">
+                        <label>Nama Kuisioner:</label>
+                        <input type="text" id="name-${kuis.id}" value="${kuis.name}">
+                    </div>
+                    <div class="form-group">
+                        <label>Jam Mulai:</label>
+                        <input type="time" id="time-${kuis.id}" value="${kuis.startTime}">
+                    </div>
+                    <div class="form-group">
+                        <label>Pernyataan (satu per baris):</label>
+                        <textarea id="questions-${kuis.id}" rows="4">${kuis.questions.join('\n')}</textarea>
+                    </div>
+                `;
+                container.appendChild(kuisDiv);
+            });
+        }
+
+        function saveAllSettings() {
+            const settings = JSON.parse(localStorage.getItem('kuisionerSettings'));
+            const newSettings = settings.map(kuis => {
+                const name = document.getElementById(`name-${kuis.id}`).value;
+                const startTime = document.getElementById(`time-${kuis.id}`).value;
+                const questionsText = document.getElementById(`questions-${kuis.id}`).value;
+                const questions = questionsText.split('\n').filter(q => q.trim() !== '');
+                return { id: kuis.id, name, startTime, questions };
+            });
+            localStorage.setItem('kuisionerSettings', JSON.stringify(newSettings));
+            alert('Pengaturan berhasil disimpan!');
+        }
+
+        function tampilkanDanUrutkanData() {
+            let riwayat = JSON.parse(localStorage.getItem('riwayatPenilaianSikap')) || [];
+            const tabelRiwayatBody = document.getElementById('tabelRiwayat');
+            tabelRiwayatBody.innerHTML = '';
+
+            if (riwayat.length === 0) {
+                tabelRiwayatBody.innerHTML = '<tr><td colspan="9">Belum ada data penilaian.</td></tr>';
+                return;
+            }
+
+            const dataDenganRataRata = riwayat.map(responden => {
+                const nilai = Object.values(responden).filter(v => !isNaN(v));
+                const totalNilai = nilai.reduce((sum, val) => sum + parseFloat(val), 0);
+                const rataRata = totalNilai / nilai.length;
+                return { ...responden, rataRata: rataRata.toFixed(2) };
+            });
+
+            dataDenganRataRata.sort((a, b) => parseFloat(b.rataRata) - parseFloat(a.rataRata));
+            
+            dataDenganRataRata.forEach((data, index) => {
+                const baris = tabelRiwayatBody.insertRow();
+                baris.insertCell(0).textContent = index + 1;
+                baris.insertCell(1).textContent = data.noAbsen;
+                baris.insertCell(2).textContent = data.nama;
+                baris.insertCell(3).textContent = `${data.A || 0}%`;
+                baris.insertCell(4).textContent = `${data.B || 0}%`;
+                baris.insertCell(5).textContent = `${data.C || 0}%`;
+                baris.insertCell(6).textContent = `${data.D || 0}%`;
+                baris.insertCell(7).textContent = `${data.rataRata}%`;
+                // TAMBAHKAN TOMBOL HAPUS
+                const aksiCell = baris.insertCell(8);
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = 'Hapus';
+                deleteButton.className = 'danger';
+                deleteButton.onclick = () => deleteRespondent(data.noAbsen);
+                aksiCell.appendChild(deleteButton);
+            });
+        }
+        
+        // --- FUNGSI HAPUS DATA ---
+        function deleteRespondent(noAbsen) {
+            if (confirm(`Apakah Anda yakin ingin menghapus semua data untuk No Absen ${noAbsen}?`)) {
+                // Hapus dari riwayat final
+                let riwayat = JSON.parse(localStorage.getItem('riwayatPenilaianSikap')) || [];
+                riwayat = riwayat.filter(r => r.noAbsen !== noAbsen);
+                localStorage.setItem('riwayatPenilaianSikap', JSON.stringify(riwayat));
+
+                // Hapus dari data progress
+                let inProgressData = JSON.parse(localStorage.getItem('inProgressRespondenData')) || {};
+                delete inProgressData[noAbsen];
+                localStorage.setItem('inProgressRespondenData', JSON.stringify(inProgressData));
+
+                // Refresh tampilan tabel
+                tampilkanDanUrutkanData();
+                alert(`Data untuk No Absen ${noAbsen} telah berhasil dihapus.`);
+            }
+        }
+
+        function confirmResetAllData() {
+            const confirmation = prompt("PERINGATAN: Ini akan menghapus SEMUA data responden yang ada. Ketik 'HAPUS SEMUA' untuk melanjutkan.");
+            if (confirmation === 'HAPUS SEMUA') {
+                localStorage.removeItem('riwayatPenilaianSikap');
+                localStorage.removeItem('inProgressRespondenData');
+                tampilkanDanUrutkanData();
+                alert("Semua data telah direset.");
+            } else if (confirmation !== null) {
+                alert("Konfirmasi tidak valid. Aksi dibatalkan.");
+            }
+        }
+
+        function exportToExcel() {
+            let riwayat = JSON.parse(localStorage.getItem('riwayatPenilaianSikap')) || [];
+            if (riwayat.length === 0) {
+                alert('Tidak ada data untuk diekspor.');
+                return;
+            }
+            
+            const dataDenganRataRata = riwayat.map(responden => {
+                const nilai = Object.values(responden).filter(v => !isNaN(v));
+                const totalNilai = nilai.reduce((sum, val) => sum + parseFloat(val), 0);
+                const rataRata = totalNilai / nilai.length;
+                return { ...responden, rataRata: rataRata.toFixed(2) };
+            });
+            dataDenganRataRata.sort((a, b) => parseFloat(b.rataRata) - parseFloat(a.rataRata));
+
+            let csvContent = "Peringkat,No Absen,Nama Responden,Nilai A (%),Nilai B (%),Nilai C (%),Nilai D (%),Rata-Rata (%)\n";
+            dataDenganRataRata.forEach((data, index) => {
+                csvContent += `${index + 1},${data.noAbsen},"${data.nama}",${data.A || 0},${data.B || 0},${data.C || 0},${data.D || 0},${data.rataRata}\n`;
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", "data_penilaian_sikap_progress.csv");
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+
+</body>
+</html>
