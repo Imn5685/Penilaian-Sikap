@@ -87,6 +87,14 @@
         .settings-item h3 {
             margin-top: 0;
         }
+        .question-type {
+            display: flex;
+            margin-bottom: 10px;
+        }
+        .question-type label {
+            margin-right: 15px;
+            font-weight: normal;
+        }
 
         /* Respondent Page */
         #kuisionerContainer {
@@ -97,6 +105,14 @@
             padding: 10px;
             border-left: 4px solid #007BFF;
             background-color: #f9f9f9;
+        }
+        .pertanyaan.negatif {
+            border-left-color: #dc3545;
+        }
+        .question-type-indicator {
+            font-size: 0.8em;
+            color: #666;
+            margin-bottom: 5px;
         }
         .opsi-jawaban label {
             display: inline-block;
@@ -221,10 +237,50 @@
 
             if (!localStorage.getItem('kuisionerSettings')) {
                 const defaultSettings = [
-                    { id: 'A', name: 'Disiplin', startTime: '08:00', questions: ['Saya selalu datang tepat waktu.', 'Saya mematuhi semua peraturan yang berlaku.'] },
-                    { id: 'B', name: 'Tanggung Jawab', startTime: '12:00', questions: ['Saya menyelesaikan tugas saya dengan hasil terbaik.', 'Saya bertanggung jawab atas kesalahan yang saya buat.'] },
-                    { id: 'C', name: 'Kerjasama Tim', startTime: '15:00', questions: ['Saya aktif memberikan ide dalam tim.', 'Saya menghargai pendapat anggota tim lainnya.'] },
-                    { id: 'D', name: 'Inisiatif', startTime: '17:00', questions: ['Saya mencari cara untuk meningkatkan efisiensi kerja.', 'Saya tidak takut untuk mencoba hal baru dalam pekerjaan.'] }
+                    { 
+                        id: 'A', 
+                        name: 'Disiplin', 
+                        startTime: '08:00', 
+                        questions: [
+                            { text: 'Saya selalu datang tepat waktu.', type: 'positif' },
+                            { text: 'Saya mematuhi semua peraturan yang berlaku.', type: 'positif' },
+                            { text: 'Saya sering terlambat datang.', type: 'negatif' },
+                            { text: 'Saya mengabaikan beberapa peraturan.', type: 'negatif' }
+                        ] 
+                    },
+                    { 
+                        id: 'B', 
+                        name: 'Tanggung Jawab', 
+                        startTime: '12:00', 
+                        questions: [
+                            { text: 'Saya menyelesaikan tugas saya dengan hasil terbaik.', type: 'positif' },
+                            { text: 'Saya bertanggung jawab atas kesalahan yang saya buat.', type: 'positif' },
+                            { text: 'Saya sering menunda-nunda pekerjaan.', type: 'negatif' },
+                            { text: 'Saya cenderung menyalahkan orang lain atas kesalahan saya.', type: 'negatif' }
+                        ] 
+                    },
+                    { 
+                        id: 'C', 
+                        name: 'Kerjasama Tim', 
+                        startTime: '15:00', 
+                        questions: [
+                            { text: 'Saya aktif memberikan ide dalam tim.', type: 'positif' },
+                            { text: 'Saya menghargai pendapat anggota tim lainnya.', type: 'positif' },
+                            { text: 'Saya enggan membantu rekan tim yang kesulitan.', type: 'negatif' },
+                            { text: 'Saya lebih suka bekerja sendiri daripada berkolaborasi.', type: 'negatif' }
+                        ] 
+                    },
+                    { 
+                        id: 'D', 
+                        name: 'Inisiatif', 
+                        startTime: '17:00', 
+                        questions: [
+                            { text: 'Saya mencari cara untuk meningkatkan efisiensi kerja.', type: 'positif' },
+                            { text: 'Saya tidak takut untuk mencoba hal baru dalam pekerjaan.', type: 'positif' },
+                            { text: 'Saya menunggu instruksi sebelum melakukan sesuatu.', type: 'negatif' },
+                            { text: 'Saya menghindari tugas-tugas yang menantang.', type: 'negatif' }
+                        ] 
+                    }
                 ];
                 localStorage.setItem('kuisionerSettings', JSON.stringify(defaultSettings));
             }
@@ -368,15 +424,29 @@
             kuis.questions.forEach((q, i) => {
                 const qDiv = document.createElement('div');
                 qDiv.className = 'pertanyaan';
-                qDiv.innerHTML = `
-                    <p>${i + 1}. ${q}</p>
-                    <div class="opsi-jawaban">
-                        <label><input type="radio" name="q${currentKuisIndex}_${i}" value="4" required> Sangat Setuju</label>
-                        <label><input type="radio" name="q${currentKuisIndex}_${i}" value="3"> Setuju</label>
-                        <label><input type="radio" name="q${currentKuisIndex}_${i}" value="2"> Tidak Setuju</label>
-                        <label><input type="radio" name="q${currentKuisIndex}_${i}" value="1"> Sangat Tidak Setuju</label>
-                    </div>
+                if (q.type === 'negatif') {
+                    qDiv.classList.add('negatif');
+                }
+                
+                const typeIndicator = document.createElement('div');
+                typeIndicator.className = 'question-type-indicator';
+                typeIndicator.textContent = q.type === 'negatif' ? '(Pernyataan Negatif)' : '(Pernyataan Positif)';
+                
+                const questionText = document.createElement('p');
+                questionText.textContent = `${i + 1}. ${q.text}`;
+                
+                const optionsDiv = document.createElement('div');
+                optionsDiv.className = 'opsi-jawaban';
+                optionsDiv.innerHTML = `
+                    <label><input type="radio" name="q${currentKuisIndex}_${i}" value="4" required> Sangat Setuju</label>
+                    <label><input type="radio" name="q${currentKuisIndex}_${i}" value="3"> Setuju</label>
+                    <label><input type="radio" name="q${currentKuisIndex}_${i}" value="2"> Tidak Setuju</label>
+                    <label><input type="radio" name="q${currentKuisIndex}_${i}" value="1"> Sangat Tidak Setuju</label>
                 `;
+                
+                qDiv.appendChild(typeIndicator);
+                qDiv.appendChild(questionText);
+                qDiv.appendChild(optionsDiv);
                 pertanyaanContainer.appendChild(qDiv);
             });
 
@@ -396,8 +466,14 @@
             for (let i = 0; i < kuis.questions.length; i++) {
                 const selector = `input[name="q${currentKuisIndex}_${i}"]:checked`;
                 const selected = document.querySelector(selector);
+                
                 if (selected) {
-                    totalSkor += parseInt(selected.value);
+                    let nilai = parseInt(selected.value);
+                    // Jika pernyataan negatif, balik nilainya
+                    if (kuis.questions[i].type === 'negatif') {
+                        nilai = 5 - nilai; // 1 menjadi 4, 2 menjadi 3, dst.
+                    }
+                    totalSkor += nilai;
                 } else {
                     allAnswered = false;
                     break;
@@ -479,6 +555,13 @@
             settings.forEach(kuis => {
                 const kuisDiv = document.createElement('div');
                 kuisDiv.className = 'settings-item';
+                
+                // Membuat string untuk pertanyaan dengan tipe
+                let questionsText = '';
+                kuis.questions.forEach(q => {
+                    questionsText += `${q.text}|${q.type}\n`;
+                });
+                
                 kuisDiv.innerHTML = `
                     <h3>Kuisioner ${kuis.id}: ${kuis.name}</h3>
                     <div class="form-group">
@@ -490,8 +573,9 @@
                         <input type="time" id="time-${kuis.id}" value="${kuis.startTime}">
                     </div>
                     <div class="form-group">
-                        <label>Pernyataan (satu per baris):</label>
-                        <textarea id="questions-${kuis.id}" rows="4">${kuis.questions.join('\n')}</textarea>
+                        <label>Pernyataan (format: "Pernyataan|tipe" dengan tipe "positif" atau "negatif"):</label>
+                        <textarea id="questions-${kuis.id}" rows="8">${questionsText.trim()}</textarea>
+                        <p style="font-size: 0.8em; color: #666;">Contoh: "Saya selalu datang tepat waktu|positif"</p>
                     </div>
                 `;
                 container.appendChild(kuisDiv);
@@ -504,7 +588,28 @@
                 const name = document.getElementById(`name-${kuis.id}`).value;
                 const startTime = document.getElementById(`time-${kuis.id}`).value;
                 const questionsText = document.getElementById(`questions-${kuis.id}`).value;
-                const questions = questionsText.split('\n').filter(q => q.trim() !== '');
+                
+                // Parsing pertanyaan dengan tipe
+                const questions = [];
+                const lines = questionsText.split('\n').filter(line => line.trim() !== '');
+                
+                lines.forEach(line => {
+                    const parts = line.split('|');
+                    if (parts.length >= 2) {
+                        const text = parts[0].trim();
+                        const type = parts[1].trim().toLowerCase();
+                        if (type === 'positif' || type === 'negatif') {
+                            questions.push({ text, type });
+                        } else {
+                            // Default ke positif jika tipe tidak valid
+                            questions.push({ text, type: 'positif' });
+                        }
+                    } else if (parts.length === 1) {
+                        // Default ke positif jika tidak ada tipe yang ditentukan
+                        questions.push({ text: parts[0].trim(), type: 'positif' });
+                    }
+                });
+                
                 return { id: kuis.id, name, startTime, questions };
             });
             localStorage.setItem('kuisionerSettings', JSON.stringify(newSettings));
@@ -616,4 +721,3 @@
 </body>
 
 </html>
-
