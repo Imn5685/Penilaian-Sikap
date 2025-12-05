@@ -103,10 +103,9 @@
         .pertanyaan {
             margin-bottom: 15px;
             padding: 10px;
-            border-left: 4px solid #007BFF; /* Warna border dibuat seragam */
+            border-left: 4px solid #007BFF;
             background-color: #f9f9f9;
         }
-        /* Kelas .negatif dan .question-type-indicator dihapus atau tidak digunakan di halaman responden */
         .opsi-jawaban label {
             display: inline-block;
             margin-right: 20px;
@@ -203,7 +202,7 @@
                             <th>Nilai C (%)</th>
                             <th>Nilai D (%)</th>
                             <th>Rata-Rata (%)</th>
-                            <th>Aksi</th> <!-- Kolom Aksi baru -->
+                            <th>Aksi</th>
                         </tr>
                     </thead>
                     <tbody id="tabelRiwayat">
@@ -283,7 +282,7 @@
         const ADMIN_KEY = "admin123";
         let kuisionerData = [];
         let currentKuisIndex = 0;
-        let allAnswers = {};
+        let allAnswers = {}; // Hanya digunakan di akhir untuk submitResults
         let respondentData = {};
         let timeCheckInterval;
 
@@ -353,21 +352,21 @@
 
         function goToRespondentPage(nama, noAbsen) {
             respondentData = { nama, noAbsen };
-            allAnswers = {};
             document.getElementById('displayNama').textContent = nama;
             document.getElementById('displayNoAbsen').textContent = noAbsen;
             showPage('respondentPage');
             
             kuisionerData = JSON.parse(localStorage.getItem('kuisionerSettings'));
             
+            // PERBAIKAN: Muat progress langsung dari localStorage untuk menentukan kuisioner berikutnya
             const inProgressData = JSON.parse(localStorage.getItem('inProgressRespondenData')) || {};
-            if (inProgressData[noAbsen]) {
-                allAnswers = inProgressData[noAbsen].completedKuis || {};
-            } else {
-                allAnswers = {};
-            }
+            const completedKuis = (inProgressData[noAbsen] && inProgressData[noAbsen].completedKuis) ? inProgressData[noAbsen].completedKuis : {};
+            
+            // Salin progress ke global `allAnswers` untuk digunakan saat submit final
+            allAnswers = { ...completedKuis };
 
-            currentKuisIndex = kuisionerData.findIndex(kuis => !allAnswers.hasOwnProperty(kuis.id));
+            // Cari indeks kuisioner pertama yang BELUM diselesaikan
+            currentKuisIndex = kuisionerData.findIndex(kuis => !completedKuis.hasOwnProperty(kuis.id));
 
             if (currentKuisIndex === -1) {
                 document.getElementById('infoMessage').style.display = 'none';
@@ -416,7 +415,6 @@
 
             kuis.questions.forEach((q, i) => {
                 const qDiv = document.createElement('div');
-                // PERUBAHAN: Kelas 'pertanyaan' sekarang seragam, tidak lagi menambahkan 'negatif'
                 qDiv.className = 'pertanyaan';
                 
                 const questionText = document.createElement('p');
@@ -431,7 +429,6 @@
                     <label><input type="radio" name="q${currentKuisIndex}_${i}" value="1"> Sangat Tidak Setuju</label>
                 `;
                 
-                // PERUBAHAN: Indikator tipe pertanyaan tidak lagi ditambahkan ke DOM
                 qDiv.appendChild(questionText);
                 qDiv.appendChild(optionsDiv);
                 pertanyaanContainer.appendChild(qDiv);
@@ -456,9 +453,8 @@
                 
                 if (selected) {
                     let nilai = parseInt(selected.value);
-                    // Logika pembalikan nilai untuk pertanyaan negatif TETAP dipertahankan
                     if (kuis.questions[i].type === 'negatif') {
-                        nilai = 5 - nilai; // 1 menjadi 4, 2 menjadi 3, dst.
+                        nilai = 5 - nilai;
                     }
                     totalSkor += nilai;
                 } else {
@@ -476,10 +472,18 @@
 
             const skorMaksimal = kuis.questions.length * 4;
             const persentase = (totalSkor / skorMaksimal) * 100;
-            allAnswers[kuis.id] = persentase.toFixed(2);
+
+            // PERBAIKAN: Simpan progress langsung ke localStorage untuk menjaga konsistensi
+            let inProgressData = JSON.parse(localStorage.getItem('inProgressRespondenData')) || {};
+            if (!inProgressData[respondentData.noAbsen]) {
+                inProgressData[respondentData.noAbsen] = { nama: respondentData.nama, noAbsen: respondentData.noAbsen, completedKuis: {} };
+            }
+            inProgressData[respondentData.noAbsen].completedKuis[kuis.id] = persentase.toFixed(2);
+            localStorage.setItem('inProgressRespondenData', JSON.stringify(inProgressData));
             
+            // Update global `allAnswers` dan riwayat final
+            allAnswers = inProgressData[respondentData.noAbsen].completedKuis;
             updateFinalResults(respondentData, allAnswers);
-            saveProgress();
 
             if (currentKuisIndex === kuisionerData.length - 1) {
                 submitResults();
@@ -505,25 +509,11 @@
 
             localStorage.setItem('riwayatPenilaianSikap', JSON.stringify(riwayat));
         }
-
-        function saveProgress() {
-            let inProgressData = JSON.parse(localStorage.getItem('inProgressRespondenData')) || {};
-            inProgressData[respondentData.noAbsen] = {
-                nama: respondentData.nama,
-                noAbsen: respondentData.noAbsen,
-                completedKuis: allAnswers
-            };
-            localStorage.setItem('inProgressRespondenData', JSON.stringify(inProgressData));
-        }
         
         function submitResults() {
             clearInterval(timeCheckInterval);
             
-            let riwayat = JSON.parse(localStorage.getItem('riwayatPenilaianSikap')) || [];
-            const finalData = { ...respondentData, ...allAnswers };
-            riwayat.push(finalData);
-            localStorage.setItem('riwayatPenilaianSikap', JSON.stringify(riwayat));
-
+            // Data sudah tersimpan di updateFinalResults, cukup hapus dari progress
             let inProgressData = JSON.parse(localStorage.getItem('inProgressRespondenData')) || {};
             delete inProgressData[respondentData.noAbsen];
             localStorage.setItem('inProgressRespondenData', JSON.stringify(inProgressData));
@@ -543,7 +533,6 @@
                 const kuisDiv = document.createElement('div');
                 kuisDiv.className = 'settings-item';
                 
-                // Membuat string untuk pertanyaan dengan tipe
                 let questionsText = '';
                 kuis.questions.forEach(q => {
                     questionsText += `${q.text}|${q.type}\n`;
@@ -576,7 +565,6 @@
                 const startTime = document.getElementById(`time-${kuis.id}`).value;
                 const questionsText = document.getElementById(`questions-${kuis.id}`).value;
                 
-                // Parsing pertanyaan dengan tipe
                 const questions = [];
                 const lines = questionsText.split('\n').filter(line => line.trim() !== '');
                 
@@ -588,11 +576,9 @@
                         if (type === 'positif' || type === 'negatif') {
                             questions.push({ text, type });
                         } else {
-                            // Default ke positif jika tipe tidak valid
                             questions.push({ text, type: 'positif' });
                         }
                     } else if (parts.length === 1) {
-                        // Default ke positif jika tidak ada tipe yang ditentukan
                         questions.push({ text: parts[0].trim(), type: 'positif' });
                     }
                 });
@@ -632,7 +618,6 @@
                 baris.insertCell(5).textContent = `${data.C || 0}%`;
                 baris.insertCell(6).textContent = `${data.D || 0}%`;
                 baris.insertCell(7).textContent = `${data.rataRata}%`;
-                // TAMBAHKAN TOMBOL HAPUS
                 const aksiCell = baris.insertCell(8);
                 const deleteButton = document.createElement('button');
                 deleteButton.textContent = 'Hapus';
@@ -642,20 +627,16 @@
             });
         }
         
-        // --- FUNGSI HAPUS DATA ---
         function deleteRespondent(noAbsen) {
             if (confirm(`Apakah Anda yakin ingin menghapus semua data untuk No Absen ${noAbsen}?`)) {
-                // Hapus dari riwayat final
                 let riwayat = JSON.parse(localStorage.getItem('riwayatPenilaianSikap')) || [];
                 riwayat = riwayat.filter(r => r.noAbsen !== noAbsen);
                 localStorage.setItem('riwayatPenilaianSikap', JSON.stringify(riwayat));
 
-                // Hapus dari data progress
                 let inProgressData = JSON.parse(localStorage.getItem('inProgressRespondenData')) || {};
                 delete inProgressData[noAbsen];
                 localStorage.setItem('inProgressRespondenData', JSON.stringify(inProgressData));
 
-                // Refresh tampilan tabel
                 tampilkanDanUrutkanData();
                 alert(`Data untuk No Absen ${noAbsen} telah berhasil dihapus.`);
             }
