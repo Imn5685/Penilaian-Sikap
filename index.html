@@ -103,17 +103,10 @@
         .pertanyaan {
             margin-bottom: 15px;
             padding: 10px;
-            border-left: 4px solid #007BFF;
+            border-left: 4px solid #007BFF; /* Warna border dibuat seragam */
             background-color: #f9f9f9;
         }
-        .pertanyaan.negatif {
-            border-left-color: #dc3545;
-        }
-        .question-type-indicator {
-            font-size: 0.8em;
-            color: #666;
-            margin-bottom: 5px;
-        }
+        /* Kelas .negatif dan .question-type-indicator dihapus atau tidak digunakan di halaman responden */
         .opsi-jawaban label {
             display: inline-block;
             margin-right: 20px;
@@ -150,7 +143,7 @@
             <div id="loginError" class="error"></div>
             <form id="loginForm">
                 <div class="form-group">
-                    <label for="loginInput">Nama Lengkap:</label>
+                    <label for="loginInput">Nama Lengkap (Responden) atau Password Admin:</label>
                     <input type="password" id="loginInput" placeholder="Masukkan Nama atau Password" required>
                 </div>
                 <div class="form-group" id="noAbsenGroup" style="display: none;">
@@ -161,6 +154,7 @@
             </form>
             <p style="margin-top: 20px; font-size: 0.9em; color: #666;">
                 <strong>Responden:</strong> Masukkan Nama dan No Absen Anda.<br>
+                <strong>Admin:</strong> Masukkan password admin.
             </p>
         </div>
 
@@ -422,14 +416,8 @@
 
             kuis.questions.forEach((q, i) => {
                 const qDiv = document.createElement('div');
+                // PERUBAHAN: Kelas 'pertanyaan' sekarang seragam, tidak lagi menambahkan 'negatif'
                 qDiv.className = 'pertanyaan';
-                if (q.type === 'negatif') {
-                    qDiv.classList.add('negatif');
-                }
-                
-                const typeIndicator = document.createElement('div');
-                typeIndicator.className = 'question-type-indicator';
-                typeIndicator.textContent = q.type === 'negatif' ? '(Pernyataan Negatif)' : '(Pernyataan Positif)';
                 
                 const questionText = document.createElement('p');
                 questionText.textContent = `${i + 1}. ${q.text}`;
@@ -443,7 +431,7 @@
                     <label><input type="radio" name="q${currentKuisIndex}_${i}" value="1"> Sangat Tidak Setuju</label>
                 `;
                 
-                qDiv.appendChild(typeIndicator);
+                // PERUBAHAN: Indikator tipe pertanyaan tidak lagi ditambahkan ke DOM
                 qDiv.appendChild(questionText);
                 qDiv.appendChild(optionsDiv);
                 pertanyaanContainer.appendChild(qDiv);
@@ -468,7 +456,7 @@
                 
                 if (selected) {
                     let nilai = parseInt(selected.value);
-                    // Jika pernyataan negatif, balik nilainya
+                    // Logika pembalikan nilai untuk pertanyaan negatif TETAP dipertahankan
                     if (kuis.questions[i].type === 'negatif') {
                         nilai = 5 - nilai; // 1 menjadi 4, 2 menjadi 3, dst.
                     }
@@ -720,4 +708,3 @@
 </body>
 
 </html>
-
